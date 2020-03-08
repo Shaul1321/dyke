@@ -58,14 +58,12 @@ def corrupt_sequence(positive_sequence: str) -> str:
     
     # swipe randomly a number of brackets of different types to create negative examples
     
-    if np.random.random() < 1:
-    
-        for i in range(random.choice(range(1,3))):
-    
-            ind = random.choice([j for j in relevant if j not in already_chosen])
-            already_chosen.add(ind)
-            bracket = positive_sequence_lst[ind]
-            positive_sequence_lst[ind] = get_opposite_bracket(bracket)
+    if np.random.random() < 0.5:
+        
+        ind = random.choice([j for j in relevant if j not in already_chosen])
+        already_chosen.add(ind)
+        bracket = positive_sequence_lst[ind]
+        positive_sequence_lst[ind] = get_opposite_bracket(bracket)
             
     # randomly remove an even number of brackets from the same type
     else:
