@@ -63,10 +63,19 @@ def generate_prefix(n, opening2closing = {"(": ")", "[": "]"}, branching_p = 0.5
         embedded_depth = max(depths[last_open_i:])
     else:
         distance, embedded_depth = 0, 0
-        
+    
+    # calculate suffix that is needed to complete this prefix to a valid dyck string.
+    
+    suffix = ""
+    while len(stack) > 0:
+    
+        top, _ = stack.pop()
+        suffix += opening2closing[top]
+    
     return {"seq": "".join(seq), "not_matched_idx": not_matched_idx, "top_of_stack_brackets": top_of_stack_brackets, 
             "top_of_stack_idx": top_of_stack_idx, "depths": depths, "is_balanced": is_balanced, 
-            "next_closing_bracket": next_closing_bracket, "distance": distance, "embedded_depth": embedded_depth, "length": n}
+            "next_closing_bracket": next_closing_bracket, "distance": distance, "embedded_depth": embedded_depth, "length": n,
+            "balancing_suffix": suffix}
 
         
         
