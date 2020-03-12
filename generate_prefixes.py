@@ -28,6 +28,7 @@ def generate_prefix(n, opening2closing = {"(": ")", "[": "]"}, branching_p = 0.5
     stack.append((seq[0], 0)) # the stack contains the currently top open bracket, and its linear index
     depths = [1] # we start with depth of 1 becasue of the opening bracket
     current_top_of_stack = [stack[0]]
+    stack_size = [1]
     
     for i in range(n-1):
         
@@ -47,7 +48,7 @@ def generate_prefix(n, opening2closing = {"(": ")", "[": "]"}, branching_p = 0.5
             depths.append(depths[-1] - 1)
             
         current_top_of_stack.append(stack[-1] if len(stack) > 0 else ("-", "-"))
-    
+        stack_size.append(len(stack))
     # collect some useful stats
     
     top_of_stack_brackets, top_of_stack_idx = list(zip(*current_top_of_stack))
@@ -72,7 +73,7 @@ def generate_prefix(n, opening2closing = {"(": ")", "[": "]"}, branching_p = 0.5
         top, _ = stack.pop()
         suffix += opening2closing[top]
     
-    return {"seq": "".join(seq), "not_matched_idx": not_matched_idx, "top_of_stack_brackets": top_of_stack_brackets, 
+    return {"seq": "".join(seq), "stack_sizes": stack_size, "not_matched_idx": not_matched_idx, "top_of_stack_brackets": top_of_stack_brackets, 
             "top_of_stack_idx": top_of_stack_idx, "depths": depths, "is_balanced": is_balanced, 
             "next_closing_bracket": next_closing_bracket, "distance": distance, "embedded_depth": embedded_depth, "length": n,
             "balancing_suffix": suffix}
