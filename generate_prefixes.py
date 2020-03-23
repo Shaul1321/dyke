@@ -76,10 +76,51 @@ def generate_prefix(n, opening2closing = {"(": ")", "[": "]"}, branching_p = 0.5
     return {"seq": "".join(seq), "stack_sizes": stack_size, "not_matched_idx": not_matched_idx, "top_of_stack_brackets": top_of_stack_brackets, 
             "top_of_stack_idx": top_of_stack_idx, "depths": depths, "is_balanced": is_balanced, 
             "next_closing_bracket": next_closing_bracket, "distance": distance, "embedded_depth": embedded_depth, "length": n,
-            "balancing_suffix": suffix}
+            "balancing_suffix": suffix, "corrupted": False}
 
+
+def get_opposite_bracket(bracket):
+
+    if bracket == "[": return "]"
+    elif bracket == "]": return "["
+    elif bracket == "(": return ")"
+    elif bracket == ")": return "("
+            
+            
+            
+def corrupt_sequence(positive_sequence: str) -> str:
+    original = copy.copy(positive_sequence)
+    
+    positive_sequence_lst = list(positive_sequence)
+    already_chosen = set()
+    relevant = [i for i in range(len(positive_sequence)) if positive_sequence[i] != "*"]
+    
+    # swipe randomly a number of brackets of different types to create negative examples
+    
+    if np.random.random() < 0.5:
         
-        
+        ind = random.choice([j for j in relevant if j not in already_chosen])
+        already_chosen.add(ind)
+        bracket = positive_sequence_lst[ind]
+        positive_sequence_lst[ind] = get_opposite_bracket(bracket)
+            
+    # randomly remove a few of brackets from the same type
+    else:
+    
+        while True:
+            idx = np.random.choice(relevant, size = np.random.choice(range(1,5)))
+            if positive_sequence_lst.count(positive_sequence_lst[0]) == len(positive_sequence_lst): #if all brackets are of the same type
+            
+                positive_sequence_lst = [x for i,x in enumerate(positive_sequence_lst) if i not in idx]
+            break
+   
+    #print("Original: {}; now: {}".format(positive_sequence, original))
+    return "".join(positive_sequence_lst)
+    
+            
+            
+            
+            
 def write_to_file(name: str, data: List[Dict]):
 
     print("Writing to file {}".format(name))
@@ -91,7 +132,9 @@ def write_to_file(name: str, data: List[Dict]):
             f.write("\n")
             
             
-def main(train_size: int, dev_size: int, train_lengths: Tuple[int, int], dev_lengths: Tuple[int, int], branching_probability: float, opening2closing: dict):
+            
+            
+def main(train_size: int, dev_size: int, train_lengths: Tuple[int, int], dev_lengths: Tuple[int, int], branching_probability: float, opening2closing: dict, corrupted_per_valid: int):
 
     # generate number of examples that is proportional to length (more challenging examples)
     
@@ -120,7 +163,18 @@ def main(train_size: int, dev_size: int, train_lengths: Tuple[int, int], dev_len
         for i in range(num_examples):
             pbar.update(1)
             data = generate_prefix(length, opening2closing = opening2closing, branching_p = branching_probability)
-            train.append(data)      
+            train.append(data)  
+            
+            for k in range(corrupted_per_valid): # create corresponding negative examples
+            
+                negative_seq = corrupt_sequence(data["seq"])
+                negative_data = data.copy()
+                negative_data["seq"] = negative_seq
+                negative_data["is_balanced"] = False
+                negative_data["corrupted"] = True
+                train.append(negative_data)
+                 
+                
         
     for length in dev_length_range:
     
@@ -130,7 +184,16 @@ def main(train_size: int, dev_size: int, train_lengths: Tuple[int, int], dev_len
         for i in range(num_examples):
             pbar.update(1)
             data = generate_prefix(length, opening2closing = opening2closing, branching_p = branching_probability)
-            dev.append(data)      
+            dev.append(data)
+            
+            for k in range(corrupted_per_valid): # create corresponding negative examples
+            
+                negative_seq = corrupt_sequence(data["seq"])
+                negative_data = data.copy()
+                negative_data["seq"] = negative_seq
+                negative_data["is_balanced"] = False
+                negative_data["corrupted"] = True
+                dev.append(negative_data)      
     
     pbar.close()
     
@@ -147,10 +210,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='balanced brackets generation',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--train-size', dest='train_size', type=int,
-                        default=75000,
+                        default=15000,
                         help='number of training examples to generate')
     parser.add_argument('--dev-size', dest='dev_size', type=int,
-                        default=75000,
+                        default=15000,
                         help='number of dev examples to generate')
     parser.add_argument('--min-len-train', dest='min_len_train', type=int,
                         default= 30,
@@ -168,8 +231,11 @@ if __name__ == "__main__":
                         default= 0.5,
                         help='probability of adding a new opening bracket')
     parser.add_argument('--double-brackets', dest='double', type=bool,
-                        default= True,
-                        help='Whether to use double brackets')                                       
+                        default= False,
+                        help='Whether to use double brackets')
+    parser.add_argument('--corrupted-per-valid', dest='corrupted_per_valid', type=int,
+                        default= 1,
+                        help='How many corrupted sequences to create per valid dyck prefix')                                          
     args = parser.parse_args()
     
 
@@ -179,4 +245,4 @@ if __name__ == "__main__":
     if args.double:
         opening2closing["["] = "]"
         
-    main(args.train_size, args.dev_size, train_lens, dev_lens, args.branching_prob, opening2closing)
+    main(args.train_size, args.dev_size, train_lens, dev_lens, args.branching_prob, opening2closing, args.corrupted_per_valid)
