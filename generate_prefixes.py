@@ -124,6 +124,23 @@ def corrupt_sequence(positive_sequence: dict) -> dict:
     
             
             
+def balance_data(input_data):
+    pos = [x for x in input_data if x['is_balanced'] is True]
+    neg = [x for x in input_data if x['is_balanced'] is False]
+
+    min_val = min(len(pos), len(neg))
+    np.random.shuffle(pos)
+    np.random.shuffle(neg)
+    balanced_data = pos[:min_val] + neg[:min_val]
+    np.random.shuffle(balanced_data)
+    return balanced_data
+
+
+def disjoint_dev(train, dev):
+    train_seqs = set([x['seq'] for x in train])
+
+    disjoint_data = [x for x in dev if x['seq'] not in train_seqs]
+    return disjoint_data
             
             
 def write_to_file(name: str, data: List[Dict]):
@@ -199,8 +216,15 @@ def main(train_size: int, dev_size: int, train_lengths: Tuple[int, int], dev_len
     random.shuffle(train)
     random.shuffle(dev)
 
-    write_to_file("train.jsonl", train)
-    write_to_file("dev.jsonl", dev)
+    dis_dev = disjoint_dev(train, dev)
+    train_balanced = balance_data(train)
+    dev_balanced = balance_data(dis_dev)
+
+    # random.shuffle(train)
+    # random.shuffle(dev)
+
+    write_to_file("train.jsonl", train_balanced)
+    write_to_file("dev.jsonl", dev_balanced)
     
     
     
@@ -209,19 +233,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='balanced brackets generation',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--train-size', dest='train_size', type=int,
-                        default=15000,
+                        default=100000,
                         help='number of training examples to generate')
     parser.add_argument('--dev-size', dest='dev_size', type=int,
-                        default=15000,
+                        default=100000,
                         help='number of dev examples to generate')
     parser.add_argument('--min-len-train', dest='min_len_train', type=int,
-                        default= 30,
+                        default= 20,
                         help='min length in the training set')
     parser.add_argument('--max-len-train', dest='max_len_train', type=int,
                         default= 100,
                         help='max length in the training set')
     parser.add_argument('--min-len-dev', dest='min_len_dev', type=int,
-                        default= 30,
+                        default= 20,
                         help='min length in the dev set')
     parser.add_argument('--max-len-dev', dest='max_len_dev', type=int,
                         default= 100,
