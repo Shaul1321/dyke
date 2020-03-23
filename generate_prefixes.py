@@ -88,34 +88,39 @@ def get_opposite_bracket(bracket):
             
             
             
-def corrupt_sequence(positive_sequence: str) -> str:
-    original = copy.copy(positive_sequence)
-    
-    positive_sequence_lst = list(positive_sequence)
+def corrupt_sequence(positive_sequence: dict) -> dict:
+    negative_sequence = copy.deepcopy(positive_sequence)
+    positive_sequence_lst = list(positive_sequence["seq"])
     already_chosen = set()
-    relevant = [i for i in range(len(positive_sequence)) if positive_sequence[i] != "*"]
     
-    # swipe randomly a number of brackets of different types to create negative examples
-    
-    if np.random.random() < 0.5:
+    # swipe randomly one opening bracket to create a negative example.
         
+    # find positions where a removal of a bracket would render the sequence invalid (num opening < num closing)
+        
+    relevant = [i+1 for i,size in enumerate(positive_sequence["stack_sizes"]) if size == 0] # corrupt the indices just after balanced prefixes
+    if len(relevant) > 0:
         ind = random.choice([j for j in relevant if j not in already_chosen])
         already_chosen.add(ind)
-        bracket = positive_sequence_lst[ind]
-        positive_sequence_lst[ind] = get_opposite_bracket(bracket)
+        if ind < len(positive_sequence_lst):
+                bracket = positive_sequence_lst[ind]
+                positive_sequence_lst[ind] = get_opposite_bracket(bracket)
             
-    # randomly remove a few of brackets from the same type
-    else:
+                # randomly remove an opening bracket such that after its removal the stack size is negative
+                """   
+                else:
     
-        while True:
-            idx = np.random.choice(relevant, size = np.random.choice(range(1,4)))
-            if positive_sequence_lst.count(positive_sequence_lst[0]) == len(positive_sequence_lst): #if all brackets are of the same type
-            
-                positive_sequence_lst = [x for i,x in enumerate(positive_sequence_lst) if i not in idx]
-            break
-   
-    #print("Original: {}; now: {}".format(positive_sequence, original))
-    return "".join(positive_sequence_lst)
+                        relevant = [i+1 for i,size in enumerate(positive_sequence["stack_sizes"]) if size == 0]
+        
+                #print("Original: {}; now: {}".format(positive_sequence, original))
+                """
+                negative_sequence["seq"] = "".join(positive_sequence_lst)
+                negative_sequence["is_balanced"] = False
+                negative_sequence["corrupted"] = True
+                negative_sequence["corruption_index"] = ind
+    
+                return negative_sequence
+        
+    return None
     
             
             
@@ -167,12 +172,9 @@ def main(train_size: int, dev_size: int, train_lengths: Tuple[int, int], dev_len
             
             for k in range(corrupted_per_valid): # create corresponding negative examples
             
-                negative_seq = corrupt_sequence(data["seq"])
-                negative_data = data.copy()
-                negative_data["seq"] = negative_seq
-                negative_data["is_balanced"] = False
-                negative_data["corrupted"] = True
-                train.append(negative_data)
+                negative_data = corrupt_sequence(data)
+                if negative_data is not None:
+                        train.append(negative_data)
                  
                 
         
@@ -187,13 +189,10 @@ def main(train_size: int, dev_size: int, train_lengths: Tuple[int, int], dev_len
             dev.append(data)
             
             for k in range(corrupted_per_valid): # create corresponding negative examples
-            
-                negative_seq = corrupt_sequence(data["seq"])
-                negative_data = data.copy()
-                negative_data["seq"] = negative_seq
-                negative_data["is_balanced"] = False
-                negative_data["corrupted"] = True
-                dev.append(negative_data)      
+                
+                negative_data = corrupt_sequence(data)
+                if negative_data is not None:
+                        dev.append(negative_data)      
     
     pbar.close()
     
