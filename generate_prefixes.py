@@ -108,7 +108,7 @@ def corrupt_sequence(positive_sequence: str) -> str:
     else:
     
         while True:
-            idx = np.random.choice(relevant, size = np.random.choice(range(1,5)))
+            idx = np.random.choice(relevant, size = np.random.choice(range(1,4)))
             if positive_sequence_lst.count(positive_sequence_lst[0]) == len(positive_sequence_lst): #if all brackets are of the same type
             
                 positive_sequence_lst = [x for i,x in enumerate(positive_sequence_lst) if i not in idx]
